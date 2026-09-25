@@ -85,6 +85,17 @@ const envSchema = z.object({
 const productionSecretsSchema = envSchema.superRefine((value, ctx) => {
   if (value.NODE_ENV !== 'production') return
 
+  // A running API without a database only turns every data-backed request into
+  // a 503. Treat a missing production connection string as a deployment error
+  // rather than allowing Render's process health check to mask it.
+  if (!value.DATABASE_URL) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['DATABASE_URL'],
+      message: 'is required in production',
+    })
+  }
+
   if (value.JWT_ACCESS_SECRET === DEV_ACCESS_SECRET) {
     ctx.addIssue({
       code: 'custom',

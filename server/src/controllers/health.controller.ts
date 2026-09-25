@@ -6,8 +6,11 @@ import { env } from '../config/env'
 export async function getHealth(_req: Request, res: Response): Promise<void> {
   const databaseConnected = await checkDatabase()
 
-  res.json({
-    status: 'ok',
+  // Health checks drive Render's routing and the keep-alive workflow. Returning
+  // 200 while the database is down hides an outage and leaves clients to fail
+  // later on every data-backed endpoint.
+  res.status(databaseConnected ? 200 : 503).json({
+    status: databaseConnected ? 'ok' : 'degraded',
     service: 'changia-server',
     version: '0.1.0',
     environment: env.NODE_ENV,
